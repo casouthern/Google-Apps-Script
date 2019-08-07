@@ -1,0 +1,108 @@
+function onOpen() {
+ var ui = SpreadsheetApp.getUi();
+  // Or DocumentApp or FormApp.
+  ui.createMenu('Calculate Usage')
+          .addItem('30 Days', 'calculate30Days')
+      .addToUi();
+}
+
+function calculate30Days(){
+ var sheet  = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet1');
+ var sheet2 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Sheet2');
+ var sheet3 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Report1');
+ var sheet4 = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Report2');
+  
+ //get range sheet1
+ var rangeData = sheet.getDataRange();
+ // last column position sheet1
+ var endColumn = rangeData.getLastColumn();
+ // last row with data sheet1
+ var endRow = rangeData.getLastRow();
+ //clear cols A-C sheet2
+ sheet2.getRange("A1:C").clear();
+ // loop over columns c
+ for ( var c = 0; c < endColumn-1; c++){
+ //get Range col D
+ var rangeC = sheet2.getRange("C2:C").getValues();
+ // get length of Col D
+ var endC= rangeC.filter(String).length;
+ // create new var for all values in columns starting at 5
+ var values = sheet.getRange(2,c+2,endRow-1,1).getValues();
+ var date = sheet.getRange(2,1,endRow-1,1).getValues();
+ var key = sheet.getRange(1,c+2,).getValues();
+ // append value column checking for last row in col D
+ sheet2.getRange(endC+2,3,endRow-1,1).setValues(values);
+ // Append date column check last row D
+ sheet2.getRange(endC+2,1,endRow-1,1).setValues(date);
+ //append header to all rows col 3 and check last row D
+ sheet2.getRange(endC+2,2,endRow-1,1).setValue(key);
+
+ }
+  //get range of sheet2
+  var rangeData2= sheet2.getDataRange();
+  // sheet2 last row with data
+  var endRow2 = sheet2.getLastRow();
+  // sheet2 all rows
+  var allRows = sheet2.getMaxRows();
+  /* delete all rows after last row with data
+   Array Formula will add 0 to all rows */
+  if (allRows-endRow2 != 0){
+  sheet2.deleteRows(endRow2+1, allRows-endRow2);
+  }
+  // this block inserts formulas and replaces values 
+  //set header for date
+  sheet2.getRange(1,1).setValue('date');
+  //set header for api_key
+  sheet2.getRange(1,2).setValue('api_key');
+  //set header for api_name
+  sheet2.getRange(1,3).setValue('YOUR_API_NAME');
+  //insert formula in new col to calculate usage
+  sheet2.getRange(2,4).setValue('=ARRAYFORMULA(C2:C*12960)');
+  //insert formula in new col to redact time
+  sheet2.getRange(2,5).setValue('=ARRAYFORMULA(LEFT(A2:A,10))');
+  //var for calulated values
+  var calculatedValues = sheet2.getRange("D2:D").getValues();
+  //var for redacted time
+  var redactedTime=sheet2.getRange("E2:E").getValues();
+  //replace /s with calulated values
+  sheet2.getRange("C2:C").setValues(calculatedValues);
+  //replace zulu time with YMD
+  sheet2.getRange("A2:A").setValues(redactedTime);
+  //delete cols 4 and 5
+  sheet2.deleteColumns(4,2);
+  // create pivot table on sheet3 
+  sheet3.getRange(1,1).setValue('=QUERY(Sheet2!A1:C, "select A, SUM(C) group by A pivot B")');
+  calculateAPI();
+}
+function calculateAPI(){
+  var sheet3= SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Report1');
+  var sheet4= SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Report2');
+  sheet4.getRange("A1:C").clear();
+   //get range sheet1
+   var rangeData3 = sheet3.getDataRange();
+   var rangeData4 = sheet4.getDataRange();
+   // last column position sheet1
+   var endColumn = rangeData3.getLastColumn();
+   // last row with data sheet1
+   var endRow = rangeData3.getLastRow();
+   // loop over columns c
+   for ( var c = 0; c < endColumn-1; c++){
+   //get Range col D
+   var rangeC = sheet4.getRange("C2:C").getValues();
+   // get length of col D
+   var endC= rangeC.filter(String).length;
+   // create new var for all values in columns starting at 5
+   var values = sheet3.getRange(2,c+2,endRow-1,1).getValues();
+   var date = sheet3.getRange(2,1,endRow-1,1).getValues();
+   var key = sheet3.getRange(1,c+2,).getValues();
+   // append value column checking for last row in col D
+   sheet4.getRange(endC+2,3,endRow-1,1).setValues(values);
+   // Append date column check last row D
+   sheet4.getRange(endC+2,1,endRow-1,1).setValues(date);
+   //append header to all rows col 3 and check last row D
+   sheet4.getRange(endC+2,2,endRow-1,1).setValue(key);
+ }
+  sheet4.getRange(1,1).setValue('date');
+  sheet4.getRange(1,2).setValue('api_key');
+  sheet4.getRange(1,3).setValue('YOUR_API_NAME');
+}
